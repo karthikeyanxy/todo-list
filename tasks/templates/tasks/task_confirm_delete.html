@@ -1,0 +1,23 @@
+{% extends 'tasks/base.html' %}
+{% block title %}Delete Task — To-Do List{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card form-card shadow-sm border-danger">
+      <div class="card-header card-header-danger"><h4 class="mb-0">Delete Task?</h4></div>
+      <div class="card-body">
+        <p>Are you sure you want to delete this task? This cannot be undone.</p>
+        <p><strong>{{ task.title }}</strong>
+          {% if task.due_date %}<br><small class="text-muted">Due: {{ task.due_date }} &middot; {{ task.priority }} &middot; {{ task.category }}</small>{% endif %}
+        </p>
+        <form method="post" class="d-flex gap-2">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+          <a href="{% url 'task_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

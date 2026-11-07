@@ -1,0 +1,158 @@
+{% extends 'tasks/base.html' %}
+{% block title %}Dashboard — To-Do List{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+  <h2 class="mb-0 page-title">My Tasks</h2>
+  <a href="{% url 'task_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg"></i> Add Task
+  </a>
+</div>
+<p class="page-subtitle mb-4">Stay organised — your day, beautifully in order.</p>
+
+<!-- Dashboard counts -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center shadow-sm h-100"><div class="card-body">
+      <div class="stat-icon total"><i class="bi bi-list-task"></i></div>
+      <div class="stat-number">{{ total }}</div><span class="text-muted">Total</span>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center shadow-sm h-100"><div class="card-body">
+      <div class="stat-icon done"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-number text-success">{{ completed_count }}</div><span class="text-muted">Completed</span>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center shadow-sm h-100"><div class="card-body">
+      <div class="stat-icon pending"><i class="bi bi-clock"></i></div>
+      <div class="stat-number text-warning">{{ pending_count }}</div><span class="text-muted">Pending</span>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card text-center shadow-sm h-100"><div class="card-body">
+      <div class="stat-icon overdue"><i class="bi bi-exclamation-circle"></i></div>
+      <div class="stat-number text-danger">{{ overdue_count }}</div><span class="text-muted">Overdue</span>
+    </div></div>
+  </div>
+</div>
+
+<!-- Completion progress -->
+<div class="card shadow-sm p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="fw-semibold"><i class="bi bi-trophy text-warning"></i> Your progress</span>
+    <span class="text-muted">{{ completed_count }} of {{ total }} done &middot; {{ completion_pct }}%</span>
+  </div>
+  <div class="progress" role="progressbar" aria-valuenow="{{ completion_pct }}" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar" style="width: {{ completion_pct }}%"></div>
+  </div>
+</div>
+
+<!-- Search + filters (GET form, so the URL stays shareable/bookmarkable) -->
+<form method="get" class="card filter-card shadow-sm p-3 mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label mb-1">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search by title...">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label mb-1">Status</label>
+      <select name="status" class="form-select">
+        <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+        <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="completed" {% if status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label mb-1">Priority</label>
+      <select name="priority" class="form-select">
+        <option value="All" {% if priority == 'All' %}selected{% endif %}>All</option>
+        <option value="High" {% if priority == 'High' %}selected{% endif %}>High</option>
+        <option value="Medium" {% if priority == 'Medium' %}selected{% endif %}>Medium</option>
+        <option value="Low" {% if priority == 'Low' %}selected{% endif %}>Low</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label mb-1">Sort by</label>
+      <select name="sort" class="form-select">
+        <option value="due_date" {% if sort == 'due_date' %}selected{% endif %}>Due date (earliest)</option>
+        <option value="-due_date" {% if sort == '-due_date' %}selected{% endif %}>Due date (latest)</option>
+        <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Newest first</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button class="btn btn-primary flex-fill" type="submit">Filter</button>
+      <a href="{% url 'task_list' %}" class="btn btn-outline-secondary">Clear</a>
+    </div>
+  </div>
+</form>
+
+<!-- Task list -->
+{% if tasks %}
+  <div class="row g-3 task-grid">
+    {% for task in tasks %}
+    <div class="col-md-6">
+      <div class="card task-card shadow-sm h-100 {% if task.completed %}task-done{% endif %} {% if task.priority == 'High' %}priority-high{% elif task.priority == 'Medium' %}priority-medium{% else %}priority-low{% endif %}">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <h5 class="card-title mb-1 {% if task.completed %}text-decoration-line-through text-muted{% endif %}">
+              {{ task.title }}
+            </h5>
+            <!-- Priority badge: High=rose, Medium=amber, Low=green -->
+            {% if task.priority == 'High' %}
+              <span class="badge badge-priority-high">{{ task.priority }}</span>
+            {% elif task.priority == 'Medium' %}
+              <span class="badge badge-priority-medium">{{ task.priority }}</span>
+            {% else %}
+              <span class="badge badge-priority-low">{{ task.priority }}</span>
+            {% endif %}
+          </div>
+
+          {% if task.description %}
+            <p class="card-text text-muted mb-2">{{ task.description }}</p>
+          {% endif %}
+
+          <p class="mb-2">
+            <span class="badge bg-secondary">{{ task.category }}</span>
+            {% if task.completed %}
+              <span class="badge bg-success"><i class="bi bi-check-lg"></i> Completed</span>
+            {% elif task.is_overdue %}
+              <span class="badge bg-danger">Overdue</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Pending</span>
+            {% endif %}
+            {% if task.due_date %}
+              <small class="text-muted ms-1">Due: {{ task.due_date }}</small>
+            {% else %}
+              <small class="text-muted ms-1">No due date</small>
+            {% endif %}
+          </p>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="post" action="{% url 'task_toggle' task.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button class="btn btn-sm {% if task.completed %}btn-outline-warning{% else %}btn-outline-success{% endif %}" type="submit">
+                {% if task.completed %}Mark Pending{% else %}Mark Done{% endif %}
+              </button>
+            </form>
+            <a href="{% url 'task_update' task.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+            <a href="{% url 'task_delete' task.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <!-- Empty state -->
+  <div class="card empty-state shadow-sm text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-inbox fs-1"></i>
+      <h4 class="mt-3">No tasks yet</h4>
+      <p class="text-muted">You have no tasks matching this filter. Add your first task to get started!</p>
+      <a href="{% url 'task_create' %}" class="btn btn-primary">Add Your First Task</a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
